@@ -96,7 +96,7 @@ function factorByPackage (entries, modules) {
         continue
       }
       // continuing deeper, queue up children
-      Object.values(moduleData.deps).forEach(nextId => {
+      Object.values(moduleData.deps).filter(Boolean).forEach(nextId => {
         modulesToWalk.push(nextId)
       })
     }
