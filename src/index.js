@@ -107,6 +107,7 @@ function createFactorStream ({ onFactorDone }) {
       const groupStream = groupStreams[file]
       // console.log(`pushing packages for "${file}"`)
       pushPackageSetModulesIntoStream(set, groupStream)
+      groupStream.end()
     })
   }
 
