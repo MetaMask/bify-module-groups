@@ -18,7 +18,9 @@ function plugin (browserify, pluginOpts = {}) {
 
   function setupPlugin () {
     // inject package name into module data
-    browserify.pipeline.get('emit-deps').unshift(createPackageDataStream())
+    browserify.pipeline.get('emit-deps').unshift(
+      createPackageDataStream()
+    )
     // place factor spy in just before packer
     browserify.pipeline.get('pack').unshift(
       createFactorStream({ onFactorDone })

@@ -120,7 +120,7 @@ function injectFilesIntoBrowserify (bundler, files) {
     })
     cb()
   })
-  bundler.pipeline.splice('record', 0, fileInjectionStream)
+  bundler.pipeline.get('record').unshift(fileInjectionStream)
 
   return bundler
 }
