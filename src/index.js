@@ -2,7 +2,7 @@ const through = require('through2').obj
 const pump = require('pump')
 const vinylSource = require('vinyl-source-stream')
 const browserPack = require('browser-pack')
-const { createPackageDataStream } = require('lavamoat-browserify/src/packageData')
+const { createPackageDataStream } = require('bify-packagedata-stream')
 const factor = require('./factor')
 const { createSpy } = require('./util')
 

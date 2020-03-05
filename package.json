@@ -8,7 +8,7 @@
     "test": "node test"
   },
   "dependencies": {
-    "lavamoat-browserify": "^6.0.0",
+    "bify-packagedata-stream": "1.0.0",
     "pump": "^3.0.0",
     "through2": "^3.0.1",
     "vinyl-source-stream": "^2.0.0"
@@ -17,6 +17,7 @@
     "browserify": "^16.5.0",
     "clone": "^2.1.2",
     "concat-stream": "^2.0.0",
+    "pify": "^5.0.0",
     "tape": "^4.13.2"
   },
   "repository": "git@github.com:LavaMoat/bify-package-factor.git"
