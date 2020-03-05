@@ -8,16 +8,15 @@ const factor = require('../src/factor')
 test('factor basic test', async (t) => {
   const { files, modules } = createSimpleFactorFiles()
   const entryPoints = files.filter(file => file.entry).map(file => file.id)
-  const { common, groupSets } = factor(entryPoints, modules)
+  const { common, groupModules } = factor(entryPoints, modules)
 
-  t.equal(common.size, 1, 'should be one common package')
-  t.deepEqual(Array.from(common), ['b'])
+  t.deepEqual(common.map(String), ['3', '12'], 'common modules should make expected')
 
-  const groupSetEntries = Object.entries(groupSets).map(([groupId, set]) => ([groupId, Array.from(set)]))
+  const groupSetEntries = Object.entries(groupModules).map(([groupId, arr]) => ([groupId, arr.map(String).sort()]))
   t.equal(groupSetEntries.length, 2, 'should be two groups')
   t.deepEqual(groupSetEntries, [
-    ['entry1', ['a']],
-    ['entry2', ['c']],
+    ['entry1', ['10', '2', 'entry1']],
+    ['entry2', ['11', '4', 'entry2']],
   ], 'groups claimed expected modules')
 
   t.end()
@@ -42,38 +41,59 @@ test('plugin basic test', async (t) => {
 
 function createSimpleFactorFiles () {
   const files = [{
-    id: 'entry1',
-    packageName: '<root>',
-    file: './src/1.js',
-    deps: { 2: 2, 3: 3 },
-    source: `module.exports = "entry1"`,
-    entry: true,
-  }, {
-    id: 'entry2',
-    packageName: '<root>',
-    file: './src/2.js',
-    deps: { 3: 3, 4: 4 },
-    source: `module.exports = "entry2"`,
-    entry: true,
-  }, {
-    id: '2',
-    packageName: 'a',
-    file: './node_modules/a/index.js',
-    deps: {},
-    source: `module.exports = "2"`,
-  }, {
-    id: '3',
-    packageName: 'b',
-    file: './node_modules/b/index.js',
-    deps: {},
-    source: `module.exports = "3"`,
-  }, {
-    id: '4',
-    packageName: 'c',
-    file: './node_modules/c/index.js',
-    deps: {},
-    source: `module.exports = "4"`,
-  }]
+    // common.js
+      id: '3',
+      packageName: 'b',
+      file: './node_modules/b/index.js',
+      deps: {},
+      source: `module.exports = 3`,
+    }, {
+      id: '12',
+      packageName: '<root>',
+      file: './src/12.js',
+      deps: {},
+      source: `module.exports = 10`,
+    }, {
+    // src/1.js
+      id: 'entry1',
+      packageName: '<root>',
+      file: './src/1.js',
+      deps: { 2: 2, 3: 3, 10: 10 },
+      source: `global.testResult = require('2') * require('3') * require('10')`,
+      entry: true,
+    }, {
+      id: '10',
+      packageName: '<root>',
+      file: './src/10.js',
+      deps: { 12: 12 },
+      source: `module.exports = require('12')`,
+    }, {
+      id: '2',
+      packageName: 'a',
+      file: './node_modules/a/index.js',
+      deps: {},
+      source: `module.exports = 2`,
+    }, {
+    // src/2.js
+      id: 'entry2',
+      packageName: '<root>',
+      file: './src/2.js',
+      deps: { 3: 3, 4: 4, 11: 11 },
+      source: `global.testResult = require('3') * require('4') * require('11')`,
+      entry: true,
+    }, {
+      id: '11',
+      packageName: '<root>',
+      file: './src/11.js',
+      deps: { 12: 12 },
+      source: `module.exports = require('12')`,
+    }, {
+      id: '4',
+      packageName: 'c',
+      file: './node_modules/c/index.js',
+      deps: {},
+      source: `module.exports = 4`,
+    }]
 
   const modules = filesToModules(files)
 

@@ -84,40 +84,33 @@ function createFactorStream ({ onFactorDone }) {
     }
     // collect modules
     modules[moduleData.id] = moduleData
-    // collect modules under packageName
-    const modulesInThisPackage = packageModules[moduleData.packageName] = packageModules[moduleData.packageName] || []
-    modulesInThisPackage.push(moduleData.id)
-    // continue without passing on the moduleData yet
   }
 
   function flushAllModules () {
     // console.error(`factoring for entryPoints: ${entryPoints.join(', ')}`)
-    const { common, groupSets } = factor(entryPoints, modules)
+    const { common, groupModules } = factor(entryPoints, modules)
     // console.log(`factor complete`, groupSets)
 
     // report factor complete so wiring can be set up
     onFactorDone(groupStreams)
     // pipe common modules to the main stream
-    pushPackageSetModulesIntoStream(common, factorStream)
+    pushModulesIntoStream(common, factorStream)
     // for each group, pipe group modules into the group stream
-    Object.entries(groupSets).forEach(([groupId, set]) => {
+    Object.entries(groupModules).forEach(([groupId, moduleIds]) => {
       const moduleData = modules[groupId]
       const { file } = moduleData
       // pipe group modules into this group's stream
       const groupStream = groupStreams[file]
       // console.log(`pushing packages for "${file}"`)
-      pushPackageSetModulesIntoStream(set, groupStream)
+      pushModulesIntoStream(moduleIds, groupStream)
       groupStream.end()
     })
   }
 
-  function pushPackageSetModulesIntoStream (set, stream) {
-    for (const packageName of set) {
-      packageModules[packageName].forEach((moduleId) => {
-        const moduleData = modules[moduleId]
-        // console.log(`pushing ${packageName}`)
-        stream.push(moduleData)
-      })
+  function pushModulesIntoStream (moduleIds, stream) {
+    for (const moduleId of moduleIds) {
+      const moduleData = modules[moduleId]
+      stream.push(moduleData)
     }
   }
 
