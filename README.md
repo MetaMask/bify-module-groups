@@ -13,7 +13,8 @@ One bundle for packages unique to each of the entrypoints, and one common bundle
 const bundler = browserify(['entry1.js', 'entry2.js'])
   .plugin('bify-package-factor')
 
-bundler.pipe(gulp.dest('./bundles/'))
+bundler.bundle()
+  .pipe(gulp.dest('./bundles/'))
 ```
 
 You can then import the common bundle as well as your entry-specific bundle.
