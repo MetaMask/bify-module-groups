@@ -25,7 +25,7 @@ function plugin (browserify, pluginOpts = {}) {
     )
     // place factor spy in just before packer
     // label.push positioning ensures deduped deps are in the deps obj
-    browserify.pipeline.get('label').push(
+    browserify.pipeline.get('pack').unshift(
       createFactorStream({ onFactorDone })
     )
     // create vinyl-fs output stream
