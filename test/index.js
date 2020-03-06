@@ -2,6 +2,8 @@ const test = require('tape')
 const clone = require('clone')
 const browserify = require('browserify')
 const through = require('through2').obj
+const vinylBuffer = require('vinyl-buffer')
+const { runInNewContext } = require('vm')
 const { getStreamResults } = require('../src/util')
 const factor = require('../src/factor')
 
@@ -31,13 +33,46 @@ test('plugin basic test', async (t) => {
   injectFilesIntoBrowserify(bundler, files)
 
   const bundleStream = bundler.bundle()
+    .pipe(vinylBuffer())
 
   // get bundle results
   const vinylResults = await getStreamResults(bundleStream)
   // console.log('vinylResults', vinylResults.map(result => result))
   t.equal(vinylResults.length, 3, 'should get 3 vinyl objects')
+
+  const bundles = {}
+  vinylResults.forEach(file => {
+    bundles[file.relative] = file.contents.toString()
+  })
+
+  t.equal(
+    evalBundle(`${bundles['common.js']};\n${bundles['src/1.js']}`),
+    60
+  )
+  t.equal(
+    evalBundle(`${bundles['common.js']};\n${bundles['src/2.js']}`),
+    120
+  )
+
   t.end()
 })
+
+function evalBundle (bundle, context) {
+  const newContext = Object.assign({}, {
+    // whitelisted require fn (used by SES)
+    require: (modulePath) => {
+      if (modulePath === 'vm') return require('vm')
+      throw new Error(`Bundle called "require" with modulePath not in the whitelist: "${modulePath}"`)
+    },
+    // test-provided context
+  }, context)
+  // circular ref (used by SES)
+  newContext.global = newContext
+  // perform eval
+  runInNewContext(bundle, newContext)
+  // pull out test result value from context (not always used)
+  return newContext.testResult
+}
 
 function createSimpleFactorFiles () {
   const files = [{
@@ -86,7 +121,7 @@ function createSimpleFactorFiles () {
       packageName: '<root>',
       file: './src/11.js',
       deps: { 12: 12 },
-      source: `module.exports = require('12')`,
+      source: `module.exports = require('12') // comment to avoid dedupe :|`,
     }, {
       id: '4',
       packageName: 'c',

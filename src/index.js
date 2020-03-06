@@ -17,6 +17,8 @@ function plugin (browserify, pluginOpts = {}) {
   setupPlugin()
 
   function setupPlugin () {
+    // Force browser-pack to export the requireFn
+    browserify._bpack.hasExports = true
     // inject package name into module data
     browserify.pipeline.get('emit-deps').unshift(
       createPackageDataStream()
@@ -33,13 +35,10 @@ function plugin (browserify, pluginOpts = {}) {
     const finalOutput = through()
     browserify.pipeline.get('wrap').push(finalOutput)
 
-    // finalOutput.on('end', () => console.log('finalOutput end'))
-    // finalOutput.on('data', (entry) => console.log('finalOutput data', entry))
-
     // for each groupStream, pack + vinyl-wrap + send to output
     function onFactorDone (groupStreams) {
       for (const [filename, stream] of Object.entries(groupStreams)) {
-        const packer = createPacker({ raw: true }, filename)
+        const packer = createPacker({ raw: true, hasExports: true }, filename)
 
         // stream.on('data', (data) => console.log(`stream "${filename}" ${data}`))
         // packer.on('data', (data) => console.log(`packer "${filename}" ${data}`))
