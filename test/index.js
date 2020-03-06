@@ -14,9 +14,10 @@ test('factor basic test', async (t) => {
 
   t.deepEqual(common.map(String), ['3', '12'], 'common modules should make expected')
 
-  const groupSetEntries = Object.entries(groupModules).map(([groupId, arr]) => ([groupId, arr.map(String).sort()]))
-  t.equal(groupSetEntries.length, 2, 'should be two groups')
-  t.deepEqual(groupSetEntries, [
+  // this test uses factor directly so it doesnt have browserify's dedupe affecting commonality
+  const groupModulesEntries = Object.entries(groupModules).map(([groupId, arr]) => ([groupId, arr.map(String).sort()]))
+  t.equal(groupModulesEntries.length, 2, 'should be two groups')
+  t.deepEqual(groupModulesEntries, [
     ['entry1', ['10', '2', 'entry1']],
     ['entry2', ['11', '4', 'entry2']],
   ], 'groups claimed expected modules')
@@ -27,7 +28,7 @@ test('factor basic test', async (t) => {
 test('plugin basic test', async (t) => {
   const { files } = createSimpleFactorFiles()
 
-  const bundler = browserify()
+  const bundler = browserify({ dedupe: false })
     .plugin(__dirname + '/../src/index.js')
 
   injectFilesIntoBrowserify(bundler, files)
@@ -47,7 +48,7 @@ test('plugin basic test', async (t) => {
 
   t.equal(
     evalBundle(`${bundles['common.js']};\n${bundles['src/1.js']}`),
-    60
+    120
   )
   t.equal(
     evalBundle(`${bundles['common.js']};\n${bundles['src/2.js']}`),
@@ -69,6 +70,7 @@ function evalBundle (bundle, context) {
   // circular ref (used by SES)
   newContext.global = newContext
   // perform eval
+  // eval(bundle) // easier to debug in ndb
   runInNewContext(bundle, newContext)
   // pull out test result value from context (not always used)
   return newContext.testResult
@@ -107,7 +109,7 @@ function createSimpleFactorFiles () {
       packageName: 'a',
       file: './node_modules/a/index.js',
       deps: {},
-      source: `module.exports = 2`,
+      source: `module.exports = 4`,
     }, {
     // src/2.js
       id: 'entry2',
@@ -121,7 +123,7 @@ function createSimpleFactorFiles () {
       packageName: '<root>',
       file: './src/11.js',
       deps: { 12: 12 },
-      source: `module.exports = require('12') // comment to avoid dedupe :|`,
+      source: `module.exports = require('12')`,
     }, {
       id: '4',
       packageName: 'c',

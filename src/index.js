@@ -24,7 +24,8 @@ function plugin (browserify, pluginOpts = {}) {
       createPackageDataStream()
     )
     // place factor spy in just before packer
-    browserify.pipeline.get('pack').unshift(
+    // label.push positioning ensures deduped deps are in the deps obj
+    browserify.pipeline.get('label').push(
       createFactorStream({ onFactorDone })
     )
     // create vinyl-fs output stream
@@ -60,7 +61,6 @@ function createFactorStream ({ onFactorDone }) {
   const modules = {}
   const entryPoints = []
   const groupStreams = {}
-  const packageModules = {}
 
   const factorStream = createSpy({
     onEach: recordEachModule,
@@ -71,7 +71,6 @@ function createFactorStream ({ onFactorDone }) {
 
 
   function recordEachModule (moduleData) {
-    // console.error(moduleData)
     // collect entry points
     if (moduleData.entry) {
       const groupId = moduleData.id
@@ -88,7 +87,6 @@ function createFactorStream ({ onFactorDone }) {
   function flushAllModules () {
     // console.error(`factoring for entryPoints: ${entryPoints.join(', ')}`)
     const { common, groupModules } = factor(entryPoints, modules)
-    // console.log(`factor complete`, groupSets)
 
     // report factor complete so wiring can be set up
     onFactorDone(groupStreams)
