@@ -1,6 +1,6 @@
 {
   "name": "bify-package-factor",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "main": "src/index.js",
   "author": "kumavis <aaron@kumavis.me>",
   "license": "MIT",
