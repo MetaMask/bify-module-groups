@@ -1,175 +1,131 @@
+const COMMON = 'common'
 
-module.exports = factorByPackage
+module.exports = { factor, COMMON }
 
 
-function factorByPackage (entries, modules) {
+function factor (groups, modules) {
 
-  // package data
-  const commonPackages = new Set()
-  const claimedPackages = new Map()
-  const modulesForPackage = new Map()
-  // root module data
-  const commonModules = new Set()
-  const claimedModules = new Map()
-  // results
-  const groupModules = {}
-  const common = []
+  const moduleOwners = new Map()
+  const packageOwners = new Map()
 
-  // walk the graph and claim/common each non-root package or root module
-  entries.forEach((entryId) => {
-    const groupId = entryId
-    walkFrom(entryId, (...args) => factorPackages(groupId, ...args))
+  // walk the graph and claim/common each module
+  groups.forEach((groupId) => {
+    walkFrom(groupId, (...args) => factorModule(groupId, ...args))
   })
+  // console.log('factor modules', moduleOwners)
 
-  // dump claimedPackages into groupModules
-  Array.from(claimedPackages.entries()).forEach(([packageName, groupId]) => {
-    const moduleIds = groupModules[groupId] = groupModules[groupId] || []
-    const packageModules = modulesForPackage.get(packageName)
-    packageModules.forEach(moduleId => moduleIds.push(moduleId))
+  // determine package owners
+  Array.from(moduleOwners.entries()).forEach(factorPackage)
+  // console.log('factor packages', packageOwners)
+
+  // walk graph and adjust modules by package ownership
+  groups.forEach((groupId) => {
+    walkFrom(groupId, updateModuleForCommonPackages)
   })
-
-  // dump claimedModules into groupModules
-  Array.from(claimedModules.entries()).forEach(([moduleId, groupId]) => {
-    const moduleIds = groupModules[groupId] = groupModules[groupId] || []
-    moduleIds.push(moduleId)
-  })
-
-  // dump commonPackages into common
-  Array.from(commonPackages).forEach((packageName) => {
-    const packageModules = modulesForPackage.get(packageName)
-    packageModules.forEach(moduleId => common.push(moduleId))
-  })
-
-  // dump commonModules into common
-  Array.from(commonModules).forEach((moduleId) => {
-    common.push(moduleId)
-  })
-
-  return { common, groupModules }
+  // console.log('update modules', moduleOwners)
 
 
-  function factorPackages (groupId, moduleId, moduleData) {
-    const { packageName } = moduleData
+  return { moduleOwners, packageOwners }
 
-    // if module is from the <root> package, skip
+
+  function factorModule (groupId, moduleId) {
+    // already common: stop here
+    if (isCommon(moduleOwners, moduleId)) {
+      // console.log(`factorModule/isCommon ${moduleId} ${groupId}`)
+      return false
+    }
+    // already claimed: make common recursively
+    if (isClaimedByOtherGroup(moduleOwners, moduleId, groupId)) {
+      makeModuleCommonRecursively(moduleId)
+      // console.log(`factorModule/isClaimed ${moduleId} ${groupId}`)
+      return false
+    }
+    // available: claim for self, continue deeper
+    moduleOwners.set(moduleId, groupId)
+    // console.log(`factorModule/claim ${moduleId} ${groupId}`)
+    return true
+  }
+
+  function factorPackage ([moduleId, groupId]) {
+    const { packageName } = modules[moduleId]
+    // root package: skip
     if (packageName === '<root>') {
-      // factor the root modules using module-level granularity
-      factorRootModules(groupId, moduleId, moduleData)
-      // continue digging deeper
-      // console.log(`+ ${packageName} is root`)
+      // console.log(`factorPackage/root ${moduleId} ${packageName} ${groupId}`)
+      return
+    }
+    // module already common: make package common
+    if (isCommon(moduleOwners, moduleId)) {
+      packageOwners.set(packageName, COMMON)
+      // console.log(`factorPackage/modCommon ${moduleId} ${packageName} ${groupId}`)
+      return
+    }
+    // already common: skip
+    if (isCommon(packageOwners, packageName)) {
+      // console.log(`factorPackage/isCommon ${moduleId} ${packageName} ${groupId}`)
+      return
+    }
+    // already claimed: make common
+    if (isClaimedByOtherGroup(packageOwners, packageName, groupId)) {
+      packageOwners.set(packageName, COMMON)
+      // console.log(`factorPackage/isClaimed ${moduleId} ${packageName} ${groupId}`)
+      return
+    }
+    // available: claim for self
+    packageOwners.set(packageName, groupId)
+    // console.log(`factorPackage/claim ${moduleId} ${packageName} ${groupId}`)
+    return
+  }
+
+  function updateModuleForCommonPackages (moduleId, moduleData) {
+    const { packageName } = moduleData
+    // root package: continue to children
+    if (packageName === '<root>') {
       return true
     }
-
-    // collect non-root modules under packageName
-    let modulesInThisPackage = modulesForPackage.get(packageName)
-    if (!modulesInThisPackage) {
-      modulesInThisPackage = new Set()
-      modulesForPackage.set(packageName, modulesInThisPackage)
-    }
-    modulesInThisPackage.add(moduleId)
-
-    // already common: stop here
-    if (isCommonPackage(packageName)) {
-      // skip searching children
-      // console.log(`+ ${packageName} is common`)
+    // module already common: skip children
+    if (isCommon(moduleOwners, moduleId)) {
       return false
     }
-    // claimed by other group: move to common
-    if (isPackageClaimedByOther(groupId, packageName)) {
-      // console.log(`+ ${packageName} is claimed by not ${groupId}`)
-      makeCommonPackage(moduleId)
-      // console.log('claimedPackages', claimedPackages)
-      // skip searching children
+    // package is common: make common recursively, skip children
+    if (isCommon(packageOwners, packageName)) {
+      makeModuleCommonRecursively(moduleId)
       return false
     }
-    // console.log(`+ ${packageName} claiming for self ${groupId}`)
-    // not claimed by other: claim for self
-    claimPackageForGroup(groupId, packageName)
-    // console.log('claimedPackages', claimedPackages)
-    // continue searching children
+    // continue to children
     return true
   }
 
-  function isCommonPackage (packageName) {
-    return commonPackages.has(packageName)
+  function isCommon (registry, id) {
+    return registry.get(id) === COMMON
   }
 
-  function isPackageClaimedByOther (groupId, packageName) {
-    return claimedPackages.has(packageName) && (claimedPackages.get(packageName) !== groupId)
+  function isClaimedByOtherGroup (registry, elementId, groupId) {
+    return registry.has(elementId) && registry.get(elementId) !== groupId
   }
 
-  function claimPackageForGroup (groupId, packageName) {
-    claimedPackages.set(packageName, groupId)
-  }
-
-  function makeCommonPackage (moduleId) {
-    // we have to walk this graph and remove all its packages from ownership to common
-    // if we build up some table ahead of time, we wont have to walk again
-    // console.log(`makeCommonPackage ${moduleId}`)
-    walkFrom(moduleId, (moduleId, moduleData) => {
-      const { packageName } = moduleData
-      // console.log(`makeCommonPackage walk: ${moduleId} ${packageName}`)
-      claimedPackages.delete(packageName)
-      commonPackages.add(packageName)
+  function makeModuleCommonRecursively (startId) {
+    walkFrom(startId, (moduleId) => {
+      // already common: skip children
+      if (isCommon(moduleOwners, moduleId)) {
+        return false
+      }
+      // make common, continue to children
+      moduleOwners.set(moduleId, COMMON)
+      return true
     })
-  }
-
-  function factorRootModules (groupId, moduleId, moduleData) {
-    // already common: stop here
-    if (commonModules.has(moduleId)) {
-      // skip searching children
-      // console.log(`+ ${packageName} is common`)
-      return false
-    }
-    // claimed by other group: move to common
-    if (isModuleClaimedByOther(groupId, moduleId)) {
-      // console.log(`+ ${packageName} is claimed by not ${groupId}`)
-      makeModuleCommon(moduleId)
-      // console.log('claimedPackages', claimedPackages)
-      // skip searching children
-      return false
-    }
-    // console.log(`+ ${packageName} claiming for self ${groupId}`)
-    // not claimed by other: claim for self
-    claimModuleForGroup(groupId, moduleId)
-    // console.log('claimedPackages', claimedPackages)
-    // continue searching children
-    return true
-  }
-
-  function isModuleClaimedByOther (groupId, moduleId) {
-    return claimedModules.has(moduleId) && (claimedModules.get(moduleId) !== groupId)
-  }
-
-  function makeModuleCommon (moduleId) {
-    // we have to walk this graph and remove all its packages from ownership to common
-    // if we build up some table ahead of time, we wont have to walk again
-    // console.log(`makeCommon ${moduleId}`)
-    walkFrom(moduleId, (moduleId, moduleData) => {
-      const { packageName } = moduleData
-      if (packageName !== '<root>') return false
-      // console.log(`makeCommon walk: ${moduleId} ${packageName}`)
-      claimedModules.delete(moduleId)
-      commonModules.add(moduleId)
-    })
-  }
-
-  function claimModuleForGroup (groupId, moduleId) {
-    claimedModules.set(moduleId, groupId)
   }
 
   function walkFrom (entryId, visitorFn) {
     const alreadyWalked = new Set()
     const modulesToWalk = [entryId]
     for (const moduleId of modulesToWalk) {
-      // dont walk 2 nodes twice (prevent loops)
+      // dont walk same node twice (prevent inf loops)
       if (alreadyWalked.has(moduleId)) {
-        // console.log('already walked')
         continue
       }
       alreadyWalked.add(moduleId)
-      const moduleData = modules[moduleId]
       // call the visitor for this entry
+      const moduleData = modules[moduleId]
       const continueDeeper = visitorFn(moduleId, moduleData)
       if (continueDeeper === false) {
         // skip walking children

@@ -3,7 +3,7 @@ const pump = require('pump')
 const vinylSource = require('vinyl-source-stream')
 const browserPack = require('browser-pack')
 const { createPackageDataStream } = require('bify-packagedata-stream')
-const factor = require('./factor')
+const { factor, COMMON } = require('./factor')
 const { createSpy } = require('./util')
 
 /*  export a Browserify plugin  */
@@ -38,19 +38,14 @@ function plugin (browserify, pluginOpts = {}) {
 
     // for each groupStream, pack + vinyl-wrap + send to output
     function onFactorDone (groupStreams) {
-      for (const [filename, stream] of Object.entries(groupStreams)) {
+      for (const stream of Object.values(groupStreams)) {
+        const filename = stream.file
         const packer = createPacker({ raw: true, hasExports: true }, filename)
-
-        // stream.on('data', (data) => console.log(`stream "${filename}" ${data}`))
-        // packer.on('data', (data) => console.log(`packer "${filename}" ${data}`))
-
-        // console.log('pumping groupStream', filename)
         pump(
           stream,
           packer,
           vinylSource(filename),
           finalOutput,
-          // () => console.log('done')
         )
       }
     }
@@ -78,37 +73,28 @@ function createFactorStream ({ onFactorDone }) {
       // console.log(`entry point found ${groupId} ${file}`)
       entryPoints.push(groupId)
       const groupStream = through()
-      groupStreams[file] = groupStream
+      groupStream.file = file
+      groupStreams[moduleData.id] = groupStream
     }
     // collect modules
     modules[moduleData.id] = moduleData
   }
 
   function flushAllModules () {
-    // console.error(`factoring for entryPoints: ${entryPoints.join(', ')}`)
-    const { common, groupModules } = factor(entryPoints, modules)
-
+    // factor module into owners
+    const { moduleOwners } = factor(entryPoints, modules)
     // report factor complete so wiring can be set up
+    // before data enters the stream
     onFactorDone(groupStreams)
-    // pipe common modules to the main stream
-    pushModulesIntoStream(common, factorStream)
-    // for each group, pipe group modules into the group stream
-    Object.entries(groupModules).forEach(([groupId, moduleIds]) => {
-      const moduleData = modules[groupId]
-      const { file } = moduleData
-      // pipe group modules into this group's stream
-      const groupStream = groupStreams[file]
-      // console.log(`pushing packages for "${file}"`)
-      pushModulesIntoStream(moduleIds, groupStream)
-      groupStream.end()
-    })
-  }
-
-  function pushModulesIntoStream (moduleIds, stream) {
-    for (const moduleId of moduleIds) {
+    // pipe modules into their owner group's stream
+    Array.from(moduleOwners.entries()).forEach(([moduleId, groupId]) => {
+      const isCommon = (groupId === COMMON)
+      const groupStream = isCommon ? factorStream : groupStreams[groupId]
       const moduleData = modules[moduleId]
-      stream.push(moduleData)
-    }
+      groupStream.push(moduleData)
+    })
+    // end all group streams (common stream will self-end)
+    Object.values(groupStreams).forEach(groupStream => groupStream.end())
   }
 
 }

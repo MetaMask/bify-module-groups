@@ -5,22 +5,39 @@ const through = require('through2').obj
 const vinylBuffer = require('vinyl-buffer')
 const { runInNewContext } = require('vm')
 const { getStreamResults } = require('../src/util')
-const factor = require('../src/factor')
+const { factor, COMMON } = require('../src/factor')
 
 test('factor basic test', async (t) => {
+  // this test uses factor directly
   const { files, modules } = createSimpleFactorFiles()
-  const entryPoints = files.filter(file => file.entry).map(file => file.id)
-  const { common, groupModules } = factor(entryPoints, modules)
+  const entryFiles = files.filter(file => file.entry)
+  const entryPoints = entryFiles.map(file => file.id)
+  const { moduleOwners } = factor(entryPoints, modules)
 
-  t.deepEqual(common.map(String), ['3', '12'], 'common modules should make expected')
+  // check common modules
+  const commonModules = selectModulesByGroupId(moduleOwners, COMMON)
+  t.deepEqual(commonModules, ['12', '3'], 'common modules as expected')
 
-  // this test uses factor directly so it doesnt have browserify's dedupe affecting commonality
-  const groupModulesEntries = Object.entries(groupModules).map(([groupId, arr]) => ([groupId, arr.map(String).sort()]))
-  t.equal(groupModulesEntries.length, 2, 'should be two groups')
+  // check groups
+  const nonCommonGroups = new Set(moduleOwners.values())
+  nonCommonGroups.delete(COMMON)
+  const groupModulesEntries = []
+  Array.from(nonCommonGroups).forEach((groupId) => {
+    const groupModules = selectModulesByGroupId(moduleOwners, groupId)
+    groupModulesEntries.push([groupId, groupModules])
+  })
   t.deepEqual(groupModulesEntries, [
     ['entry1', ['10', '2', 'entry1']],
     ['entry2', ['11', '4', 'entry2']],
   ], 'groups claimed expected modules')
+
+  // make sure nothing got lost or added
+  const beforeIds = files.map(file => file.id)
+  const afterIds = Array.from(moduleOwners.keys()).map(String)
+  const missingIds = beforeIds.filter(id => !afterIds.includes(id))
+  const newIds = afterIds.filter(id => !beforeIds.includes(id))
+  t.equal(missingIds.length, 0, 'no missing ids')
+  t.equal(newIds.length, 0, 'no new ids')
 
   t.end()
 })
@@ -180,4 +197,11 @@ function injectFilesIntoBrowserify (bundler, files) {
   bundler.pipeline.get('record').unshift(fileInjectionStream)
 
   return bundler
+}
+
+function selectModulesByGroupId (moduleOwners, groupId) {
+  return Array.from(moduleOwners.entries())
+  .filter(([_, owner]) => owner === groupId)
+  .map(([moduleId]) => String(moduleId))
+  .sort()
 }
