@@ -137,7 +137,9 @@ function factor (groups, modules) {
   }
 }
 
-function groupByFactor () {
+function groupByFactor ({
+  entryFileToLabel = (filepath) => filepath
+} = {}) {
   const modules = {}
   const entryPoints = []
   const moduleGroups = {}
@@ -195,7 +197,8 @@ function groupByFactor () {
   }
 
   function createModuleGroup ({ groupId, file }) {
-    const moduleGroup = new ModuleGroup({ label: file })
+    const label = entryFileToLabel(file)
+    const moduleGroup = new ModuleGroup({ label })
     moduleGroups[groupId] = moduleGroup
     factorStream.push(moduleGroup)
   }

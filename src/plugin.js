@@ -24,6 +24,10 @@ function createModuleGroupStream ({
     onEach: (moduleData) => {
       // forward all inbound modules to the group obj's stream
       primaryGroup.stream.write(moduleData)
+    },
+    onEnd: () => {
+      // forward the end event to the primary group stream
+      primaryGroup.stream.end()
     }
   })
   // forward err event

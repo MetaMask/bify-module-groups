@@ -1,7 +1,7 @@
 const pump = require('pump')
 const { createForEachStream, ModuleGroup } = require('./util')
 
-module.exports = groupBySize
+module.exports = { groupBySize }
 
 // split each module group into as many module groups as it
 // requires to stay under the sizeLimit
@@ -15,7 +15,7 @@ function groupBySize ({ sizeLimit = 200e3 } = {}) {
 }
 
 function handleModuleGroup (parentGroup, sizeLimit, streamOfModuleGroups) {
-  const subgroups = []
+  let subgroupIndex = 0
   let currentSubgroup = createModuleGroup()
   let currentSize = 0
 
@@ -29,7 +29,8 @@ function handleModuleGroup (parentGroup, sizeLimit, streamOfModuleGroups) {
 
   function addNextModule (moduleData) {
     // if too big for current subgroup, prepare next subgroup
-    if ((currentSize + moduleData.source.length) > sizeLimit) {
+    // if too big but current group is empty, dont go to next subgroup yet
+    if (currentSize !== 0 && (currentSize + moduleData.source.length) >= sizeLimit) {
       nextSubgroup()
     }
     // add to current subgroup
@@ -38,9 +39,9 @@ function handleModuleGroup (parentGroup, sizeLimit, streamOfModuleGroups) {
   }
 
   function createModuleGroup () {
-    const label = `${parentGroup.label}-${subgroups.length}`
+    const label = `${parentGroup.label}-${subgroupIndex}`
     const moduleGroup = new ModuleGroup({ label })
-    subgroups.push(moduleGroup)
+    subgroupIndex++
     // add module group to stream output
     streamOfModuleGroups.push(moduleGroup)
     return moduleGroup

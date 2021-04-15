@@ -5,6 +5,7 @@ const browserify = require('browserify')
 const through = require('through2').obj
 const { getStreamResults } = require('../src/util')
 const { groupByFactor, factor, COMMON } = require('../src/factor')
+const { groupBySize } = require('../src/size')
 
 const pluginPath = require.resolve(path.join(__dirname, '..', 'src', 'plugin.js'))
 
@@ -43,7 +44,7 @@ test('factor basic test', async (t) => {
   t.end()
 })
 
-test('plugin basic test', async (t) => {
+test('plugin factor test', async (t) => {
   const { files } = createSimpleFactorFiles()
 
   const bundler = browserify({ dedupe: false })
@@ -56,8 +57,39 @@ test('plugin basic test', async (t) => {
 
   // get bundle results
   const moduleGroups = await getStreamResults(bundleStream)
-  // console.log('moduleGroups', moduleGroups.map(result => result))
-  t.equal(moduleGroups.length, 3, 'should get 3 module groups')
+  t.equal(moduleGroups.length, 3, 'should get correct number of module groups')
+
+  // gather module contents
+  const moduleGroupContents = {}
+  for (const moduleGroup of moduleGroups) {
+    moduleGroupContents[moduleGroup.label] = await getStreamResults(moduleGroup.stream)
+  }
+
+  const factoringSummary = Object.fromEntries(
+    Object.entries(moduleGroupContents)
+      .map(([key, matches]) => [key, matches.map(entry => entry.file)])
+  )
+
+  t.deepEqual(factoringSummary, { common: ['./node_modules/b/index.js', './src/12.js'], './src/entry-one.js': ['./src/entry-one.js', './node_modules/a/index.js', './src/10.js'], './src/entry-two.js': ['./src/entry-two.js', './node_modules/c/index.js', './src/11.js'] }
+    , 'groups claimed expected modules')
+
+  t.end()
+})
+
+test('plugin size test', async (t) => {
+  const { files } = createSimpleSizeFiles()
+
+  const bundler = browserify({ dedupe: false })
+    .plugin([pluginPath, { label: 'bundle' }])
+
+  injectFilesIntoBrowserify(bundler, files)
+
+  const bundleStream = bundler.bundle()
+    .pipe(groupBySize({ sizeLimit: 100 }))
+
+  // get bundle results
+  const moduleGroups = await getStreamResults(bundleStream)
+  t.equal(moduleGroups.length, 4, 'should get correct number of module group')
 
   // gather module contents
   const moduleGroupContents = {}
@@ -71,12 +103,52 @@ test('plugin basic test', async (t) => {
   )
 
   t.deepEqual(factoringSummary, {
-    common: ['./node_modules/b/index.js', './src/12.js'],
-    './src/1.js': ['./src/1.js', './node_modules/a/index.js', './src/10.js'],
-    './src/2.js': ['./src/2.js', './node_modules/c/index.js', './src/11.js']
+    'bundle-0': ['./1.js', './2.js'],
+    'bundle-1': ['./3.js'],
+    'bundle-2': ['./4.js'],
+    'bundle-3': ['./5.js']
   }
   , 'groups claimed expected modules')
 
+  t.end()
+})
+
+test('plugin factor + size test', async (t) => {
+  const { files } = createSimpleFactorFiles()
+
+  const bundler = browserify({ dedupe: false })
+    .plugin(pluginPath)
+
+  injectFilesIntoBrowserify(bundler, files)
+
+  const bundleStream = bundler.bundle()
+    .pipe(groupByFactor({
+      entryFileToLabel (filepath) { return path.parse(filepath).name }
+    }))
+    .pipe(groupBySize({ sizeLimit: 200 }))
+
+  // get bundle results
+  const moduleGroups = await getStreamResults(bundleStream)
+  t.equal(moduleGroups.length, 5, 'should get correct number of module groups')
+
+  // gather module contents
+  const moduleGroupContents = {}
+  for (const moduleGroup of moduleGroups) {
+    moduleGroupContents[moduleGroup.label] = await getStreamResults(moduleGroup.stream)
+  }
+
+  const factoringSummary = Object.fromEntries(
+    Object.entries(moduleGroupContents)
+      .map(([key, matches]) => [key, matches.map(entry => entry.file)])
+  )
+
+  t.deepEqual(factoringSummary, {
+    'common-0': ['./node_modules/b/index.js', './src/12.js'],
+    'entry-one-0': ['./src/entry-one.js'],
+    'entry-two-0': ['./src/entry-two.js'],
+    'entry-one-1': ['./node_modules/a/index.js', './src/10.js'],
+    'entry-two-1': ['./node_modules/c/index.js', './src/11.js']
+  }, 'groups claimed expected modules')
   t.end()
 })
 
@@ -98,7 +170,7 @@ function createSimpleFactorFiles () {
     // src/1.js
     id: 'entry1',
     packageName: '<root>',
-    file: './src/1.js',
+    file: './src/entry-one.js',
     deps: { 2: 2, 3: 3, 10: 10 },
     source: 'global.testResult = require(\'2\') * require(\'3\') * require(\'10\')',
     entry: true
@@ -118,7 +190,7 @@ function createSimpleFactorFiles () {
     // src/2.js
     id: 'entry2',
     packageName: '<root>',
-    file: './src/2.js',
+    file: './src/entry-two.js',
     deps: { 3: 3, 4: 4, 11: 11 },
     source: 'global.testResult = require(\'3\') * require(\'4\') * require(\'11\')',
     entry: true
@@ -141,6 +213,47 @@ function createSimpleFactorFiles () {
   return { files, modules }
 }
 
+function createSimpleSizeFiles () {
+  const files = [{
+    // common.js
+    id: '1',
+    file: './1.js',
+    // deps: {},
+    source: createSourceBySize(40),
+    entry: true
+  }, {
+    id: '2',
+    file: './2.js',
+    // deps: {},
+    source: createSourceBySize(40)
+  }, {
+    // src/1.js
+    id: '3',
+    file: './3.js',
+    // deps: { 2: 2, 3: 3, 10: 10 },
+    source: createSourceBySize(40),
+    entry: true
+  }, {
+    id: '4',
+    file: './4.js',
+    // deps: { 12: 12 },
+    source: createSourceBySize(150)
+  }, {
+    id: '5',
+    file: './5.js',
+    // deps: {},
+    source: createSourceBySize(10)
+  }]
+
+  const modules = filesToModules(files)
+
+  return { files, modules }
+}
+
+function createSourceBySize (size) {
+  return new Array(size).fill('1').join('')
+}
+
 function filesToModules (files) {
   const modules = {}
   files.forEach((file) => {
@@ -153,7 +266,6 @@ function injectFilesIntoBrowserify (bundler, files) {
   // override browserify's module resolution
   const mdeps = bundler.pipeline.get('deps').get(0)
   mdeps.resolve = (id, parent, cb) => {
-    // console.log('resolve', id, parent)
     const parentModule = files.find(f => f.id === parent.id)
     const moduleId = parentModule ? parentModule.deps[id] : id
     let moduleData = files.find(f => f.id === moduleId)
@@ -164,7 +276,7 @@ function injectFilesIntoBrowserify (bundler, files) {
     const file = moduleData.file
     const pkg = null
     const fakePath = moduleData.file
-    // console.log('resolve done', {moduleData, file, pkg, fakePath})
+
     cb(null, file, pkg, fakePath)
   }
 
