@@ -1,6 +1,9 @@
+const pump = require('pump')
+const { ModuleGroup, createForEachStream } = require('./util')
+
 const COMMON = 'common'
 
-module.exports = { factor, COMMON }
+module.exports = { groupByFactor, factor, COMMON }
 
 
 function factor (groups, modules) {
@@ -136,6 +139,71 @@ function factor (groups, modules) {
         modulesToWalk.push(nextId)
       })
     }
+  }
+
+}
+
+function groupByFactor () {
+  const modules = {}
+  const entryPoints = []
+  const moduleGroups = {}
+
+  const factorStream = createForEachStream({
+    onEach: handleModuleGroup,
+    onEnd: flushAllModules,
+  })
+
+  createModuleGroup({ groupId: COMMON, file: COMMON })
+
+  return factorStream
+
+  // for now we treat all groups as equal sources of modules
+  // that is, we ignore and just sort of join the groups
+  // sorry, i dont know why you would group before factoring
+  function handleModuleGroup (moduleGroup) {
+    pump(
+      moduleGroup.stream,
+      createForEachStream({
+        onEach: recordEachModule,
+      })  
+    )
+  }
+
+  function recordEachModule (moduleData) {
+    // collect entry points
+    if (moduleData.entry) {
+      const groupId = moduleData.id
+      const { file } = moduleData
+      // console.log(`entry point found ${groupId} ${file}`)
+      entryPoints.push(groupId)
+      createModuleGroup({ groupId, file })
+    }
+    // collect modules
+    modules[moduleData.id] = moduleData
+  }
+
+  function flushAllModules () {
+    // factor module into owners
+    const { moduleOwners } = factor(entryPoints, modules)
+    // report factor complete so wiring can be set up
+    // before data enters the stream
+    // onFactorDone(moduleGroups)
+    // pipe modules into their owner group's stream
+    Array.from(moduleOwners.entries()).forEach(([moduleId, groupId]) => {
+      const groupStream = moduleGroups[groupId].stream
+      const moduleData = modules[moduleId]
+      groupStream.push(moduleData)
+    })
+    // end all group streams (common stream will self-end)
+    Object.values(moduleGroups).forEach(moduleGroup => {
+      moduleGroup.stream.end()
+    })
+  }
+
+  function createModuleGroup ({ groupId, file }) {
+    const moduleGroup = new ModuleGroup({ label: file })
+    moduleGroups[groupId] = moduleGroup
+    factorStream.push(moduleGroup)
   }
 
 }

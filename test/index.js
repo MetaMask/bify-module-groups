@@ -4,7 +4,9 @@ const browserify = require('browserify')
 const through = require('through2').obj
 const { runInNewContext } = require('vm')
 const { getStreamResults } = require('../src/util')
-const { factor, COMMON } = require('../src/factor')
+const { groupByFactor, factor, COMMON } = require('../src/factor')
+
+const pluginPath = require.resolve(__dirname + '/../src/plugin.js')
 
 test('factor basic test', async (t) => {
   // this test uses factor directly
@@ -45,16 +47,17 @@ test('plugin basic test', async (t) => {
   const { files } = createSimpleFactorFiles()
 
   const bundler = browserify({ dedupe: false })
-    .plugin(__dirname + '/../src/index.js')
+    .plugin(pluginPath)
 
   injectFilesIntoBrowserify(bundler, files)
 
   const bundleStream = bundler.bundle()
+    .pipe(groupByFactor())
 
   // get bundle results
   const moduleGroups = await getStreamResults(bundleStream)
   // console.log('moduleGroups', moduleGroups.map(result => result))
-  t.equal(moduleGroups.length, 3, 'should get 3 vinyl objects')
+  t.equal(moduleGroups.length, 3, 'should get 3 module groups')
 
   // gather module contents
   const moduleGroupContents = {}
