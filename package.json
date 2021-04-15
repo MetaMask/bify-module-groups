@@ -1,6 +1,6 @@
 {
-  "name": "bify-package-factor",
-  "version": "1.0.7",
+  "name": "bify-module-groups",
+  "version": "1.0.0",
   "main": "src/index.js",
   "exports": {
     "plugin": "./src/plugin.js"
