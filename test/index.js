@@ -2,7 +2,6 @@ const test = require('tape')
 const clone = require('clone')
 const browserify = require('browserify')
 const through = require('through2').obj
-const vinylBuffer = require('vinyl-buffer')
 const { runInNewContext } = require('vm')
 const { getStreamResults } = require('../src/util')
 const { factor, COMMON } = require('../src/factor')
@@ -51,47 +50,32 @@ test('plugin basic test', async (t) => {
   injectFilesIntoBrowserify(bundler, files)
 
   const bundleStream = bundler.bundle()
-    .pipe(vinylBuffer())
 
   // get bundle results
-  const vinylResults = await getStreamResults(bundleStream)
-  // console.log('vinylResults', vinylResults.map(result => result))
-  t.equal(vinylResults.length, 3, 'should get 3 vinyl objects')
+  const moduleGroups = await getStreamResults(bundleStream)
+  // console.log('moduleGroups', moduleGroups.map(result => result))
+  t.equal(moduleGroups.length, 3, 'should get 3 vinyl objects')
 
-  const bundles = {}
-  vinylResults.forEach(file => {
-    bundles[file.relative] = file.contents.toString()
-  })
+  // gather module contents
+  const moduleGroupContents = {}
+  for (const moduleGroup of moduleGroups) {
+    moduleGroupContents[moduleGroup.label] = await getStreamResults(moduleGroup.stream)
+  }
 
-  t.equal(
-    evalBundle(`${bundles['common.js']};\n${bundles['src/1.js']}`),
-    120
+  const factoringSummary = Object.fromEntries(
+    Object.entries(moduleGroupContents)
+    .map(([key, matches]) => [key, matches.map(entry => entry.file)])
   )
-  t.equal(
-    evalBundle(`${bundles['common.js']};\n${bundles['src/2.js']}`),
-    120
-  )
+
+  t.deepEqual(factoringSummary, {
+    'common': [ './node_modules/b/index.js', './src/12.js' ],
+    './src/1.js': [ './src/1.js', './node_modules/a/index.js', './src/10.js' ],
+    './src/2.js': [ './src/2.js', './node_modules/c/index.js', './src/11.js' ]
+  }
+  , 'groups claimed expected modules')
 
   t.end()
 })
-
-function evalBundle (bundle, context) {
-  const newContext = Object.assign({}, {
-    // whitelisted require fn (used by SES)
-    require: (modulePath) => {
-      if (modulePath === 'vm') return require('vm')
-      throw new Error(`Bundle called "require" with modulePath not in the whitelist: "${modulePath}"`)
-    },
-    // test-provided context
-  }, context)
-  // circular ref (used by SES)
-  newContext.global = newContext
-  // perform eval
-  // eval(bundle) // easier to debug in ndb
-  runInNewContext(bundle, newContext)
-  // pull out test result value from context (not always used)
-  return newContext.testResult
-}
 
 function createSimpleFactorFiles () {
   const files = [{

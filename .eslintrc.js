@@ -1,17 +1,8 @@
 module.exports = {
   "parserOptions": {
-    "ecmaVersion": 2021,
-    "sourceType": "module"
+    "ecmaVersion": 2018,
   },
-  "extends": "plugin:ava/recommended",
-  "plugins": [
-    "eslint-plugin-ava",
-    "eslint-plugin-standard"
-  ],
-  "rules": {
-    "ava/no-import-test-files": "off"
-  },
-  "env": {
-    "es6": true
-  }
+  plugins: [
+    'eslint-plugin-standard'
+  ]
 }
