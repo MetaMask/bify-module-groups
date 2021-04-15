@@ -1,8 +1,15 @@
 module.exports = {
-  "parserOptions": {
-    "ecmaVersion": 2018,
+  env: {
+    browser: true,
+    commonjs: true,
+    es2021: true
   },
-  plugins: [
-    'eslint-plugin-standard'
-  ]
+  extends: [
+    'standard'
+  ],
+  parserOptions: {
+    ecmaVersion: 12
+  },
+  rules: {
+  }
 }

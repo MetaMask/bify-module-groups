@@ -1,12 +1,12 @@
+const path = require('path')
 const test = require('tape')
 const clone = require('clone')
 const browserify = require('browserify')
 const through = require('through2').obj
-const { runInNewContext } = require('vm')
 const { getStreamResults } = require('../src/util')
 const { groupByFactor, factor, COMMON } = require('../src/factor')
 
-const pluginPath = require.resolve(__dirname + '/../src/plugin.js')
+const pluginPath = require.resolve(path.join(__dirname, '..', 'src', 'plugin.js'))
 
 test('factor basic test', async (t) => {
   // this test uses factor directly
@@ -29,7 +29,7 @@ test('factor basic test', async (t) => {
   })
   t.deepEqual(groupModulesEntries, [
     ['entry1', ['10', '2', 'entry1']],
-    ['entry2', ['11', '4', 'entry2']],
+    ['entry2', ['11', '4', 'entry2']]
   ], 'groups claimed expected modules')
 
   // make sure nothing got lost or added
@@ -67,13 +67,13 @@ test('plugin basic test', async (t) => {
 
   const factoringSummary = Object.fromEntries(
     Object.entries(moduleGroupContents)
-    .map(([key, matches]) => [key, matches.map(entry => entry.file)])
+      .map(([key, matches]) => [key, matches.map(entry => entry.file)])
   )
 
   t.deepEqual(factoringSummary, {
-    'common': [ './node_modules/b/index.js', './src/12.js' ],
-    './src/1.js': [ './src/1.js', './node_modules/a/index.js', './src/10.js' ],
-    './src/2.js': [ './src/2.js', './node_modules/c/index.js', './src/11.js' ]
+    common: ['./node_modules/b/index.js', './src/12.js'],
+    './src/1.js': ['./src/1.js', './node_modules/a/index.js', './src/10.js'],
+    './src/2.js': ['./src/2.js', './node_modules/c/index.js', './src/11.js']
   }
   , 'groups claimed expected modules')
 
@@ -83,58 +83,58 @@ test('plugin basic test', async (t) => {
 function createSimpleFactorFiles () {
   const files = [{
     // common.js
-      id: '3',
-      packageName: 'b',
-      file: './node_modules/b/index.js',
-      deps: {},
-      source: `module.exports = 3`,
-    }, {
-      id: '12',
-      packageName: '<root>',
-      file: './src/12.js',
-      deps: {},
-      source: `module.exports = 10`,
-    }, {
+    id: '3',
+    packageName: 'b',
+    file: './node_modules/b/index.js',
+    deps: {},
+    source: 'module.exports = 3'
+  }, {
+    id: '12',
+    packageName: '<root>',
+    file: './src/12.js',
+    deps: {},
+    source: 'module.exports = 10'
+  }, {
     // src/1.js
-      id: 'entry1',
-      packageName: '<root>',
-      file: './src/1.js',
-      deps: { 2: 2, 3: 3, 10: 10 },
-      source: `global.testResult = require('2') * require('3') * require('10')`,
-      entry: true,
-    }, {
-      id: '10',
-      packageName: '<root>',
-      file: './src/10.js',
-      deps: { 12: 12 },
-      source: `module.exports = require('12')`,
-    }, {
-      id: '2',
-      packageName: 'a',
-      file: './node_modules/a/index.js',
-      deps: {},
-      source: `module.exports = 4`,
-    }, {
+    id: 'entry1',
+    packageName: '<root>',
+    file: './src/1.js',
+    deps: { 2: 2, 3: 3, 10: 10 },
+    source: 'global.testResult = require(\'2\') * require(\'3\') * require(\'10\')',
+    entry: true
+  }, {
+    id: '10',
+    packageName: '<root>',
+    file: './src/10.js',
+    deps: { 12: 12 },
+    source: 'module.exports = require(\'12\')'
+  }, {
+    id: '2',
+    packageName: 'a',
+    file: './node_modules/a/index.js',
+    deps: {},
+    source: 'module.exports = 4'
+  }, {
     // src/2.js
-      id: 'entry2',
-      packageName: '<root>',
-      file: './src/2.js',
-      deps: { 3: 3, 4: 4, 11: 11 },
-      source: `global.testResult = require('3') * require('4') * require('11')`,
-      entry: true,
-    }, {
-      id: '11',
-      packageName: '<root>',
-      file: './src/11.js',
-      deps: { 12: 12 },
-      source: `module.exports = require('12')`,
-    }, {
-      id: '4',
-      packageName: 'c',
-      file: './node_modules/c/index.js',
-      deps: {},
-      source: `module.exports = 4`,
-    }]
+    id: 'entry2',
+    packageName: '<root>',
+    file: './src/2.js',
+    deps: { 3: 3, 4: 4, 11: 11 },
+    source: 'global.testResult = require(\'3\') * require(\'4\') * require(\'11\')',
+    entry: true
+  }, {
+    id: '11',
+    packageName: '<root>',
+    file: './src/11.js',
+    deps: { 12: 12 },
+    source: 'module.exports = require(\'12\')'
+  }, {
+    id: '4',
+    packageName: 'c',
+    file: './node_modules/c/index.js',
+    deps: {},
+    source: 'module.exports = 4'
+  }]
 
   const modules = filesToModules(files)
 
@@ -188,7 +188,7 @@ function injectFilesIntoBrowserify (bundler, files) {
 
 function selectModulesByGroupId (moduleOwners, groupId) {
   return Array.from(moduleOwners.entries())
-  .filter(([_, owner]) => owner === groupId)
-  .map(([moduleId]) => String(moduleId))
-  .sort()
+    .filter(([_, owner]) => owner === groupId)
+    .map(([moduleId]) => String(moduleId))
+    .sort()
 }

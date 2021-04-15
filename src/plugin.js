@@ -1,4 +1,3 @@
-const through = require('through2').obj
 const { createForEachStream, ModuleGroup } = require('./util')
 
 /*  export a Browserify plugin  */

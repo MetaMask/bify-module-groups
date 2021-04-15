@@ -5,5 +5,5 @@ const { groupBySize } = require('./size')
 module.exports = {
   plugin,
   groupByFactor,
-  groupBySize,
+  groupBySize
 }

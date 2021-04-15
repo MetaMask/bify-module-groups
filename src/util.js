@@ -11,13 +11,12 @@ class ModuleGroup {
 
 module.exports = { createForEachStream, getStreamResults, ModuleGroup }
 
-
 const noop = () => {}
 
 function createForEachStream ({ onEach = noop, onEnd = noop }) {
   return through(
     (entry, _, cb) => { onEach(entry); cb() },
-    (cb) => { onEnd(); cb() },
+    (cb) => { onEnd(); cb() }
   )
 }
 
@@ -33,4 +32,3 @@ async function getStreamResults (stream) {
   })()
   return results
 }
-

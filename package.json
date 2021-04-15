@@ -2,6 +2,9 @@
   "name": "bify-package-factor",
   "version": "1.0.7",
   "main": "src/index.js",
+  "exports": {
+    "plugin": "./src/plugin.js"
+  },
   "author": "kumavis <aaron@kumavis.me>",
   "license": "MIT",
   "scripts": {
@@ -19,7 +22,10 @@
     "clone": "^2.1.2",
     "concat-stream": "^2.0.0",
     "eslint": "^7.24.0",
-    "eslint-plugin-standard": "^5.0.0",
+    "eslint-config-standard": "^16.0.2",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^4.3.1",
     "pify": "^5.0.0",
     "tape": "^4.13.2"
   },

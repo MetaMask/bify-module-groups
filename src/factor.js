@@ -5,9 +5,7 @@ const COMMON = 'common'
 
 module.exports = { groupByFactor, factor, COMMON }
 
-
 function factor (groups, modules) {
-
   const moduleOwners = new Map()
   const packageOwners = new Map()
 
@@ -27,9 +25,7 @@ function factor (groups, modules) {
   })
   // console.log('update modules', moduleOwners)
 
-
   return { moduleOwners, packageOwners }
-
 
   function factorModule (groupId, moduleId) {
     // already common: stop here
@@ -76,7 +72,6 @@ function factor (groups, modules) {
     // available: claim for self
     packageOwners.set(packageName, groupId)
     // console.log(`factorPackage/claim ${moduleId} ${packageName} ${groupId}`)
-    return
   }
 
   function updateModuleForCommonPackages (moduleId, moduleData) {
@@ -140,7 +135,6 @@ function factor (groups, modules) {
       })
     }
   }
-
 }
 
 function groupByFactor () {
@@ -150,7 +144,7 @@ function groupByFactor () {
 
   const factorStream = createForEachStream({
     onEach: handleModuleGroup,
-    onEnd: flushAllModules,
+    onEnd: flushAllModules
   })
 
   createModuleGroup({ groupId: COMMON, file: COMMON })
@@ -164,8 +158,8 @@ function groupByFactor () {
     pump(
       moduleGroup.stream,
       createForEachStream({
-        onEach: recordEachModule,
-      })  
+        onEach: recordEachModule
+      })
     )
   }
 
@@ -205,5 +199,4 @@ function groupByFactor () {
     moduleGroups[groupId] = moduleGroup
     factorStream.push(moduleGroup)
   }
-
 }
