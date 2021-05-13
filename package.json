@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "src/index.js",
   "exports": {
-    "plugin": "./src/plugin.js"
+    ".": "./src/index.js",
+    "./plugin": "./src/plugin.js"
   },
   "author": "kumavis <aaron@kumavis.me>",
   "license": "MIT",
@@ -27,7 +28,8 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.3.1",
     "pify": "^5.0.0",
-    "tape": "^4.13.2"
+    "tape": "^4.13.2",
+    "vinyl": "^2.2.1"
   },
   "repository": "git@github.com:LavaMoat/bify-package-factor.git"
 }

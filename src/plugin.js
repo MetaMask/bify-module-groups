@@ -2,6 +2,9 @@ const { createForEachStream, ModuleGroup } = require('./util')
 
 /*  export a Browserify plugin  */
 module.exports = plugin
+module.exports.args = {
+  dedupe: false
+}
 
 function plugin (browserify, pluginOpts = {}) {
   // setup the plugin in a re-bundle friendly way

@@ -5,9 +5,10 @@ const COMMON = 'common'
 
 module.exports = { groupByFactor, factor, COMMON }
 
-function factor (groups, modules) {
+function factor (groups, modules, factorByPackage = false) {
   const moduleOwners = new Map()
   const packageOwners = new Map()
+  const result = { moduleOwners }
 
   // walk the graph and claim/common each module
   groups.forEach((groupId) => {
@@ -16,7 +17,10 @@ function factor (groups, modules) {
   // console.log('factor modules', moduleOwners)
 
   // determine package owners
-  Array.from(moduleOwners.entries()).forEach(factorPackage)
+  if (factorByPackage) {
+    Array.from(moduleOwners.entries()).forEach(factorPackage)
+    result.packageOwners = packageOwners
+  }
   // console.log('factor packages', packageOwners)
 
   // walk graph and adjust modules by package ownership
@@ -25,7 +29,7 @@ function factor (groups, modules) {
   })
   // console.log('update modules', moduleOwners)
 
-  return { moduleOwners, packageOwners }
+  return result
 
   function factorModule (groupId, moduleId) {
     // already common: stop here
@@ -149,6 +153,7 @@ function groupByFactor ({
     onEnd: flushAllModules
   })
 
+  // create "common" group
   createModuleGroup({ groupId: COMMON, file: COMMON })
 
   return factorStream
@@ -160,19 +165,18 @@ function groupByFactor ({
     pump(
       moduleGroup.stream,
       createForEachStream({
-        onEach: recordEachModule
+        onEach: (moduleData) => recordEachModule(moduleData, moduleGroup)
       })
     )
   }
 
-  function recordEachModule (moduleData) {
+  function recordEachModule (moduleData, parentGroup) {
     // collect entry points
     if (moduleData.entry) {
-      const groupId = moduleData.id
-      const { file } = moduleData
+      const { file, id: groupId } = moduleData
       // console.log(`entry point found ${groupId} ${file}`)
       entryPoints.push(groupId)
-      createModuleGroup({ groupId, file })
+      createModuleGroup({ groupId, file, parent: parentGroup })
     }
     // collect modules
     modules[moduleData.id] = moduleData
@@ -181,24 +185,22 @@ function groupByFactor ({
   function flushAllModules () {
     // factor module into owners
     const { moduleOwners } = factor(entryPoints, modules)
-    // report factor complete so wiring can be set up
-    // before data enters the stream
-    // onFactorDone(moduleGroups)
     // pipe modules into their owner group's stream
-    Array.from(moduleOwners.entries()).forEach(([moduleId, groupId]) => {
+    for (const [moduleId, groupId] of moduleOwners.entries()) {
+      // console.log(`flush ${moduleId} to ${groupId}`)
       const groupStream = moduleGroups[groupId].stream
       const moduleData = modules[moduleId]
       groupStream.push(moduleData)
-    })
+    }
     // end all group streams (common stream will self-end)
     Object.values(moduleGroups).forEach(moduleGroup => {
       moduleGroup.stream.end()
     })
   }
 
-  function createModuleGroup ({ groupId, file }) {
+  function createModuleGroup ({ groupId, file, parentGroup }) {
     const label = entryFileToLabel(file)
-    const moduleGroup = new ModuleGroup({ label })
+    const moduleGroup = new ModuleGroup({ label, parentGroup })
     moduleGroups[groupId] = moduleGroup
     factorStream.push(moduleGroup)
   }

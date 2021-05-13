@@ -89,7 +89,7 @@ test('plugin size test', async (t) => {
 
   // get bundle results
   const moduleGroups = await getStreamResults(bundleStream)
-  t.equal(moduleGroups.length, 4, 'should get correct number of module group')
+  t.equal(moduleGroups.length, 3, 'should get correct number of module group')
 
   // gather module contents
   const moduleGroupContents = {}
@@ -102,13 +102,7 @@ test('plugin size test', async (t) => {
       .map(([key, matches]) => [key, matches.map(entry => entry.file)])
   )
 
-  t.deepEqual(factoringSummary, {
-    'bundle-0': ['./1.js', './2.js'],
-    'bundle-1': ['./3.js'],
-    'bundle-2': ['./4.js'],
-    'bundle-3': ['./5.js']
-  }
-  , 'groups claimed expected modules')
+  t.deepEqual(factoringSummary, { 'bundle-0': ['./2.js'], 'bundle-1': ['./4.js'], 'bundle-2': ['./5.js', './1.js', './3.js'] }, 'groups claimed expected modules')
 
   t.end()
 })
@@ -142,13 +136,7 @@ test('plugin factor + size test', async (t) => {
       .map(([key, matches]) => [key, matches.map(entry => entry.file)])
   )
 
-  t.deepEqual(factoringSummary, {
-    'common-0': ['./node_modules/b/index.js', './src/12.js'],
-    'entry-one-0': ['./src/entry-one.js'],
-    'entry-two-0': ['./src/entry-two.js'],
-    'entry-one-1': ['./node_modules/a/index.js', './src/10.js'],
-    'entry-two-1': ['./node_modules/c/index.js', './src/11.js']
-  }, 'groups claimed expected modules')
+  t.deepEqual(factoringSummary, { 'common-0': ['./node_modules/b/index.js', './src/12.js'], 'entry-one-0': ['./node_modules/a/index.js', './src/10.js'], 'entry-two-0': ['./node_modules/c/index.js', './src/11.js'], 'entry-one-1': ['./src/entry-one.js'], 'entry-two-1': ['./src/entry-two.js'] }, 'groups claimed expected modules')
   t.end()
 })
 

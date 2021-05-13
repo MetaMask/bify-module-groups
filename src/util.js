@@ -3,8 +3,9 @@ const pump = require('pump')
 const pify = require('pify')
 
 class ModuleGroup {
-  constructor ({ label }) {
+  constructor ({ label, parentGroup }) {
     this.label = label
+    this.parentGroup = parentGroup
     this.stream = through()
   }
 }
