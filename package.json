@@ -34,5 +34,8 @@
     "tape": "^4.13.2",
     "vinyl": "^2.2.1"
   },
-  "repository": "git@github.com:LavaMoat/bify-package-factor.git"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MetaMask/bify-module-groups.git"
+  }
 }
