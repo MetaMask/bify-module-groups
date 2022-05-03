@@ -5,12 +5,12 @@ const COMMON = 'common'
 
 module.exports = { groupByFactor, factor, COMMON }
 
-function factor (groups, modules) {
+function factor (groupIds, modules) {
   const moduleOwners = new Map()
   const result = { moduleOwners }
 
   // walk the graph and claim/common each module
-  groups.forEach((groupId) => {
+  groupIds.forEach((groupId) => {
     walkFrom(groupId, (...args) => factorModule(groupId, ...args))
   })
   // console.log('factor modules', moduleOwners)
@@ -83,7 +83,9 @@ function groupByFactor ({
   entryFileToLabel = (filepath) => filepath
 } = {}) {
   const modules = {}
-  const entryPoints = []
+  // "groupId" is the entry module's moduleId. this set doesn't include the COMMON group
+  const groupIds = []
+  // "moduleGroups" is the set of groups, including the COMMON group
   const moduleGroups = {}
 
   const factorStream = createForEachStream({
@@ -113,7 +115,7 @@ function groupByFactor ({
     if (moduleData.entry) {
       const { file, id: groupId } = moduleData
       // console.log(`entry point found ${groupId} ${file}`)
-      entryPoints.push(groupId)
+      groupIds.push(groupId)
       createModuleGroup({ groupId, file, parent: parentGroup })
     }
     // collect modules
@@ -122,18 +124,20 @@ function groupByFactor ({
 
   function flushAllModules () {
     // factor module into owners
-    const { moduleOwners } = factor(entryPoints, modules)
+    const { moduleOwners } = factor(groupIds, modules)
+    // re-order modules by owner group and iterate groups
     // pipe modules into their owner group's stream
-    for (const [moduleId, groupId] of moduleOwners.entries()) {
+    for (const [groupId, moduleIds] of groupMapKeysByValue(moduleOwners).entries()) {
       // console.log(`flush ${moduleId} to ${groupId}`)
       const groupStream = moduleGroups[groupId].stream
-      const moduleData = modules[moduleId]
-      groupStream.push(moduleData)
+      // sort for determinism
+      moduleIds.sort().forEach(moduleId => {
+        const moduleData = modules[moduleId]
+        groupStream.push(moduleData)
+      })
+      // end all group streams (common stream will self-end)
+      groupStream.end()
     }
-    // end all group streams (common stream will self-end)
-    Object.values(moduleGroups).forEach(moduleGroup => {
-      moduleGroup.stream.end()
-    })
   }
 
   function createModuleGroup ({ groupId, file, parentGroup }) {
@@ -142,4 +146,17 @@ function groupByFactor ({
     moduleGroups[groupId] = moduleGroup
     factorStream.push(moduleGroup)
   }
+}
+
+function groupMapKeysByValue (inputMap) {
+  const outputMap = new Map()
+  for (const [key, value] of inputMap.entries()) {
+    const collection = outputMap.get(value)
+    if (!collection) {
+      outputMap.set(value, [key])
+    } else {
+      collection.push(key)
+    }
+  }
+  return outputMap
 }
