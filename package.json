@@ -1,6 +1,6 @@
 {
   "name": "bify-module-groups",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "main": "src/index.js",
   "exports": {
     ".": "./src/index.js",
@@ -13,26 +13,24 @@
   },
   "scripts": {
     "test": "node test",
-    "lint": "eslint 'src/*.js' 'test/*.js'",
+    "lint": "eslint 'src/*.js' 'test/*.js' && depcheck",
     "lint:fix": "eslint --fix 'src/*.js' 'test/*.js'"
   },
   "dependencies": {
-    "bify-packagedata-stream": "1.0.0",
     "pump": "^3.0.0",
     "through2": "^3.0.1"
   },
   "devDependencies": {
     "browserify": "^16.5.0",
     "clone": "^2.1.2",
-    "concat-stream": "^2.0.0",
+    "depcheck": "^1.4.3",
     "eslint": "^7.24.0",
     "eslint-config-standard": "^16.0.2",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.3.1",
     "pify": "^5.0.0",
-    "tape": "^4.13.2",
-    "vinyl": "^2.2.1"
+    "tape": "^4.13.2"
   },
   "repository": {
     "type": "git",

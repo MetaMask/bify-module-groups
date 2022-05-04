@@ -5,29 +5,15 @@ const COMMON = 'common'
 
 module.exports = { groupByFactor, factor, COMMON }
 
-function factor (groups, modules, factorByPackage = false) {
+function factor (groupIds, modules) {
   const moduleOwners = new Map()
-  const packageOwners = new Map()
   const result = { moduleOwners }
 
   // walk the graph and claim/common each module
-  groups.forEach((groupId) => {
+  groupIds.forEach((groupId) => {
     walkFrom(groupId, (...args) => factorModule(groupId, ...args))
   })
   // console.log('factor modules', moduleOwners)
-
-  // determine package owners
-  if (factorByPackage) {
-    Array.from(moduleOwners.entries()).forEach(factorPackage)
-    result.packageOwners = packageOwners
-  }
-  // console.log('factor packages', packageOwners)
-
-  // walk graph and adjust modules by package ownership
-  groups.forEach((groupId) => {
-    walkFrom(groupId, updateModuleForCommonPackages)
-  })
-  // console.log('update modules', moduleOwners)
 
   return result
 
@@ -46,54 +32,6 @@ function factor (groups, modules, factorByPackage = false) {
     // available: claim for self, continue deeper
     moduleOwners.set(moduleId, groupId)
     // console.log(`factorModule/claim ${moduleId} ${groupId}`)
-    return true
-  }
-
-  function factorPackage ([moduleId, groupId]) {
-    const { packageName } = modules[moduleId]
-    // root package: skip
-    if (packageName === '<root>') {
-      // console.log(`factorPackage/root ${moduleId} ${packageName} ${groupId}`)
-      return
-    }
-    // module already common: make package common
-    if (isCommon(moduleOwners, moduleId)) {
-      packageOwners.set(packageName, COMMON)
-      // console.log(`factorPackage/modCommon ${moduleId} ${packageName} ${groupId}`)
-      return
-    }
-    // already common: skip
-    if (isCommon(packageOwners, packageName)) {
-      // console.log(`factorPackage/isCommon ${moduleId} ${packageName} ${groupId}`)
-      return
-    }
-    // already claimed: make common
-    if (isClaimedByOtherGroup(packageOwners, packageName, groupId)) {
-      packageOwners.set(packageName, COMMON)
-      // console.log(`factorPackage/isClaimed ${moduleId} ${packageName} ${groupId}`)
-      return
-    }
-    // available: claim for self
-    packageOwners.set(packageName, groupId)
-    // console.log(`factorPackage/claim ${moduleId} ${packageName} ${groupId}`)
-  }
-
-  function updateModuleForCommonPackages (moduleId, moduleData) {
-    const { packageName } = moduleData
-    // root package: continue to children
-    if (packageName === '<root>') {
-      return true
-    }
-    // module already common: skip children
-    if (isCommon(moduleOwners, moduleId)) {
-      return false
-    }
-    // package is common: make common recursively, skip children
-    if (isCommon(packageOwners, packageName)) {
-      makeModuleCommonRecursively(moduleId)
-      return false
-    }
-    // continue to children
     return true
   }
 
@@ -145,7 +83,9 @@ function groupByFactor ({
   entryFileToLabel = (filepath) => filepath
 } = {}) {
   const modules = {}
-  const entryPoints = []
+  // "groupId" is the entry module's moduleId. this set doesn't include the COMMON group
+  const groupIds = []
+  // "moduleGroups" is the set of groups, including the COMMON group
   const moduleGroups = {}
 
   const factorStream = createForEachStream({
@@ -175,7 +115,7 @@ function groupByFactor ({
     if (moduleData.entry) {
       const { file, id: groupId } = moduleData
       // console.log(`entry point found ${groupId} ${file}`)
-      entryPoints.push(groupId)
+      groupIds.push(groupId)
       createModuleGroup({ groupId, file, parent: parentGroup })
     }
     // collect modules
@@ -184,15 +124,20 @@ function groupByFactor ({
 
   function flushAllModules () {
     // factor module into owners
-    const { moduleOwners } = factor(entryPoints, modules)
+    const { moduleOwners } = factor(groupIds, modules)
+    // re-order modules by owner group and iterate groups
     // pipe modules into their owner group's stream
-    for (const [moduleId, groupId] of moduleOwners.entries()) {
+    for (const [groupId, moduleIds] of groupMapKeysByValue(moduleOwners).entries()) {
       // console.log(`flush ${moduleId} to ${groupId}`)
       const groupStream = moduleGroups[groupId].stream
-      const moduleData = modules[moduleId]
-      groupStream.push(moduleData)
+      // sort for determinism
+      moduleIds.sort().forEach(moduleId => {
+        const moduleData = modules[moduleId]
+        groupStream.push(moduleData)
+      })
     }
     // end all group streams (common stream will self-end)
+    // ending the streams inside of the first loop causes an issue in mm somehow
     Object.values(moduleGroups).forEach(moduleGroup => {
       moduleGroup.stream.end()
     })
@@ -204,4 +149,17 @@ function groupByFactor ({
     moduleGroups[groupId] = moduleGroup
     factorStream.push(moduleGroup)
   }
+}
+
+function groupMapKeysByValue (inputMap) {
+  const outputMap = new Map()
+  for (const [key, value] of inputMap.entries()) {
+    const collection = outputMap.get(value)
+    if (!collection) {
+      outputMap.set(value, [key])
+    } else {
+      collection.push(key)
+    }
+  }
+  return outputMap
 }

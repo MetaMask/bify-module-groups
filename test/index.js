@@ -70,7 +70,7 @@ test('plugin factor test', async (t) => {
       .map(([key, matches]) => [key, matches.map(entry => entry.file)])
   )
 
-  t.deepEqual(factoringSummary, { common: ['./node_modules/b/index.js', './src/12.js'], './src/entry-one.js': ['./src/entry-one.js', './node_modules/a/index.js', './src/10.js'], './src/entry-two.js': ['./src/entry-two.js', './node_modules/c/index.js', './src/11.js'] }
+  t.deepEqual(factoringSummary, { common: ['./src/12.js', './node_modules/b/index.js'], './src/entry-one.js': ['./src/10.js', './node_modules/a/index.js', './src/entry-one.js'], './src/entry-two.js': ['./src/11.js', './node_modules/c/index.js', './src/entry-two.js'] }
     , 'groups claimed expected modules')
 
   t.end()
@@ -136,7 +136,7 @@ test('plugin factor + size test', async (t) => {
       .map(([key, matches]) => [key, matches.map(entry => entry.file)])
   )
 
-  t.deepEqual(factoringSummary, { 'common-0': ['./node_modules/b/index.js', './src/12.js'], 'entry-one-0': ['./node_modules/a/index.js', './src/10.js'], 'entry-two-0': ['./node_modules/c/index.js', './src/11.js'], 'entry-one-1': ['./src/entry-one.js'], 'entry-two-1': ['./src/entry-two.js'] }, 'groups claimed expected modules')
+  t.deepEqual(factoringSummary, { 'common-0': ['./src/12.js', './node_modules/b/index.js'], 'entry-one-0': ['./src/10.js', './node_modules/a/index.js'], 'entry-two-0': ['./src/11.js', './node_modules/c/index.js'], 'entry-one-1': ['./src/entry-one.js'], 'entry-two-1': ['./src/entry-two.js'] }, 'groups claimed expected modules')
   t.end()
 })
 
