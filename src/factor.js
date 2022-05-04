@@ -135,9 +135,12 @@ function groupByFactor ({
         const moduleData = modules[moduleId]
         groupStream.push(moduleData)
       })
-      // end all group streams (common stream will self-end)
-      groupStream.end()
     }
+    // end all group streams (common stream will self-end)
+    // ending the streams inside of the first loop causes an issue in mm somehow
+    Object.values(moduleGroups).forEach(moduleGroup => {
+      moduleGroup.stream.end()
+    })
   }
 
   function createModuleGroup ({ groupId, file, parentGroup }) {
