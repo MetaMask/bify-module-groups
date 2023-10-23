@@ -2,7 +2,7 @@ const path = require('path')
 const test = require('tape')
 const clone = require('clone')
 const browserify = require('browserify')
-const through = require('through2').obj
+const { Transform } = require('readable-stream')
 const { getStreamResults } = require('../src/util')
 const { groupByFactor, factor, COMMON } = require('../src/factor')
 const { groupBySize } = require('../src/size')
@@ -269,17 +269,21 @@ function injectFilesIntoBrowserify (bundler, files) {
   }
 
   // inject files into browserify pipeline
-  const fileInjectionStream = through(null, null, function (cb) {
-    clone(files).reverse().forEach(file => {
-      // must explicitly specify entry field
-      file.entry = file.entry || false
-      // source cannot be falsey
-      if (!file.source) {
-        throw new Error('injectFilesIntoBrowserify - file.source cannot be falsey')
-      }
-      this.push(file)
-    })
-    cb()
+  const fileInjectionStream = new Transform({
+    objectMode: true,
+    highWaterMark: 16,
+    final: (cb) => {
+      clone(files).reverse().forEach(file => {
+        // must explicitly specify entry field
+        file.entry = file.entry || false
+        // source cannot be falsey
+        if (!file.source) {
+          throw new Error('injectFilesIntoBrowserify - file.source cannot be falsey')
+        }
+        this.push(file)
+      })
+      cb()
+    }
   })
   bundler.pipeline.get('record').unshift(fileInjectionStream)
 
