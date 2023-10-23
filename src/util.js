@@ -1,12 +1,16 @@
-const through = require('through2').obj
-const { pipeline } = require('readable-stream')
+const { Transform, pipeline } = require('readable-stream')
 const pify = require('pify')
+
+const TRANSFORM_OPTIONS = {
+  highWaterMark: 16,
+  objectMode: true,
+}
 
 class ModuleGroup {
   constructor ({ label, parentGroup }) {
     this.label = label
     this.parentGroup = parentGroup
-    this.stream = through()
+    this.stream = new Transform(TRANSFORM_OPTIONS)
   }
 }
 
@@ -15,10 +19,12 @@ module.exports = { createForEachStream, getStreamResults, ModuleGroup }
 const noop = () => {}
 
 function createForEachStream ({ onEach = noop, onEnd = noop }) {
-  return through(
-    (entry, _, cb) => { onEach(entry); cb() },
-    (cb) => { onEnd(); cb() }
-  )
+  return new Transform({
+    ...TRANSFORM_OPTIONS,
+    transform: (entry, _, cb) => { onEach(entry); cb() },
+    final: (cb) => { onEnd(); cb() }
+  })
+
 }
 
 async function getStreamResults (stream) {
