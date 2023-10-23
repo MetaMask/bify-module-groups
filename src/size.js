@@ -1,4 +1,4 @@
-const pump = require('pump')
+const { pipeline } = require('readable-stream')
 const { createForEachStream, ModuleGroup } = require('./util')
 
 module.exports = { groupBySize }
@@ -20,7 +20,7 @@ function handleModuleGroup (parentGroup, sizeLimit, streamOfModuleGroups, groupi
   let currentSize = 0
   const entryModules = []
 
-  pump(
+  pipeline(
     parentGroup.stream,
     createForEachStream({
       onEach: (moduleData) => addNextModule(moduleData),

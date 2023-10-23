@@ -1,4 +1,4 @@
-const pump = require('pump')
+const { pipeline } = require('readable-stream')
 const { ModuleGroup, createForEachStream } = require('./util')
 
 const COMMON = 'common'
@@ -102,7 +102,7 @@ function groupByFactor ({
   // that is, we ignore and just sort of join the groups
   // sorry, i dont know why you would group before factoring
   function handleModuleGroup (moduleGroup) {
-    pump(
+    pipeline(
       moduleGroup.stream,
       createForEachStream({
         onEach: (moduleData) => recordEachModule(moduleData, moduleGroup)

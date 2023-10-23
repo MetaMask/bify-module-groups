@@ -1,5 +1,5 @@
 const through = require('through2').obj
-const pump = require('pump')
+const { pipeline } = require('readable-stream')
 const pify = require('pify')
 
 class ModuleGroup {
@@ -25,7 +25,7 @@ async function getStreamResults (stream) {
   // get bundle results
   const results = []
   await pify(cb => {
-    pump(
+    pipeline(
       stream,
       createForEachStream({ onEach: (entry) => { results.push(entry) } }),
       cb
