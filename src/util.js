@@ -3,7 +3,7 @@ const pify = require('pify')
 
 const TRANSFORM_OPTIONS = {
   highWaterMark: 16,
-  objectMode: true,
+  objectMode: true
 }
 
 class ModuleGroup {
@@ -24,7 +24,6 @@ function createForEachStream ({ onEach = noop, onEnd = noop }) {
     transform: (entry, _, cb) => { onEach(entry); cb() },
     final: (cb) => { onEnd(); cb() }
   })
-
 }
 
 async function getStreamResults (stream) {
