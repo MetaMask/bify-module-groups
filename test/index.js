@@ -272,6 +272,7 @@ function injectFilesIntoBrowserify (bundler, files) {
   const fileInjectionStream = new Transform({
     objectMode: true,
     highWaterMark: 16,
+    transform: () => {},
     final: (cb) => {
       clone(files).reverse().forEach(file => {
         // must explicitly specify entry field
