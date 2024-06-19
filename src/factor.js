@@ -94,7 +94,9 @@ function groupByFactor ({
   })
 
   // create "common" group
-  createModuleGroup({ groupId: COMMON, file: COMMON })
+  const commonGroup = new ModuleGroup({ label: entryFileToLabel(COMMON) })
+  moduleGroups[COMMON] = commonGroup
+  factorStream.push(commonGroup)
 
   return factorStream
 
@@ -116,7 +118,9 @@ function groupByFactor ({
       const { file, id: groupId } = moduleData
       // console.log(`entry point found ${groupId} ${file}`)
       groupIds.push(groupId)
-      createModuleGroup({ groupId, file, parent: parentGroup })
+      const moduleGroup = new ModuleGroup({ label: entryFileToLabel(file), parent: parentGroup })
+      moduleGroups[groupId] = moduleGroup
+      factorStream.push(moduleGroup)
     }
     // collect modules
     modules[moduleData.id] = moduleData
@@ -141,13 +145,6 @@ function groupByFactor ({
     Object.values(moduleGroups).forEach(moduleGroup => {
       moduleGroup.stream.end()
     })
-  }
-
-  function createModuleGroup ({ groupId, file, parentGroup }) {
-    const label = entryFileToLabel(file)
-    const moduleGroup = new ModuleGroup({ label, parentGroup })
-    moduleGroups[groupId] = moduleGroup
-    factorStream.push(moduleGroup)
   }
 }
 
