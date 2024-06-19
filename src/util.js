@@ -33,15 +33,18 @@ function createForEachStream ({ onEach = noop, onEnd = noop, ...streamOptions })
 async function getStreamResults (stream, streamOptions) {
   // get bundle results
   const results = []
-  await pify(cb => {
+  return new Promise((resolve, reject) => pify(cb => {
     pipeline(
       stream,
       createForEachStream({
         onEach: (entry) => { results.push(entry) },
+        onEnd: () => resolve(results),
         ...streamOptions
       }),
       cb
     )
-  })()
-  return results
+  })().then(() => resolve(results)).catch(e => {
+    console.error('BERR', e)
+    reject(e)
+  }))
 }
