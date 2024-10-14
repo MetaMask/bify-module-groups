@@ -32,7 +32,7 @@
     "eslint-plugin-promise": "^4.3.1",
     "pify": "^5.0.0",
     "prettier": "^3.3.3",
-    "tape": "^4.13.2"
+    "tape": "^4.17.0"
   },
   "repository": {
     "type": "git",
