@@ -24,7 +24,7 @@
     "@metamask/auto-changelog": "^4.0.0",
     "browserify": "^17.0.1",
     "clone": "^2.1.2",
-    "depcheck": "^1.4.3",
+    "depcheck": "^1.4.6",
     "eslint": "^7.24.0",
     "eslint-config-standard": "^16.0.2",
     "eslint-plugin-import": "^2.22.1",
