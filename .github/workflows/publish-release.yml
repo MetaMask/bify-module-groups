@@ -1,0 +1,32 @@
+name: Publish Release
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  publish-release:
+    permissions:
+      contents: write
+    if: |
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'release/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # We check out the release pull request's base branch, which will be
+          # used as the base branch for all git operations.
+          ref: ${{ github.event.pull_request.base.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: MetaMask/action-publish-release@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: MetaMask/action-npm-publish@v5
+        with:
+          npm-token: ${{ secrets.NPM_TOKEN }}
+        env:
+          SKIP_PREPACK: true
+

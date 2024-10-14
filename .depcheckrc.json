@@ -1,0 +1,7 @@
+{
+  "ignores": [
+    "@metamask/auto-changelog",
+    "prettier"
+  ]
+}
+
