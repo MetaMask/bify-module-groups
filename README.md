@@ -16,7 +16,7 @@ This will generate three bundles.
 One bundle for packages unique to each of the entrypoints, and one common bundle for packages that are used by both.
 
 ```js
-const pump = require('pump')
+const { pipeline } = require('readable-stream')
 const browserify = require('browserify')
 const browserPack = require('browser-pack')
 const { groupBySize, createForEachStream } = require('bify-module-groups')
@@ -25,7 +25,7 @@ const vfs = require('vinyl-fs')
 const bundler = browserify(['entry1.js', 'entry2.js'])
   .plugin('bify-module-groups/plugin')
 
-pump(
+pipeline(
   // perform bundle
   bundler.bundle(),
   // split in to module groups
@@ -33,7 +33,7 @@ pump(
   // handle each module group
   createForEachStream({
     onEach: (moduleGroup) => {
-      pump(
+      pipeline(
         moduleGroup.stream,
         browserPack({ raw: true }),
         vfs.dest(`./bundles/${moduleGroup.label}.js`),
@@ -47,7 +47,7 @@ pump(
 
 ```js
 const path = require('path')
-const pump = require('pump')
+const { pipeline } = require('readable-stream')
 const browserify = require('browserify')
 const browserPack = require('browser-pack')
 const { groupByFactor, createForEachStream } = require('bify-module-groups')
@@ -56,7 +56,7 @@ const vfs = require('vinyl-fs')
 const bundler = browserify(['./entry1.js', './entry2.js'])
   .plugin('bify-module-groups/plugin')
 
-pump(
+pipeline(
   // perform bundle
   bundler.bundle(),
   // split in to module groups
@@ -66,7 +66,7 @@ pump(
   // handle each module group
   createForEachStream({
     onEach: (moduleGroup) => {
-      pump(
+      pipeline(
         moduleGroup.stream,
         browserPack({ raw: true, hasExports: true }),
         vfs.dest(`./bundles/${moduleGroup.label}.js`),
