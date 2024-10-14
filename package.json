@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@metamask/auto-changelog": "^4.0.0",
-    "browserify": "^16.5.0",
+    "browserify": "^17.0.1",
     "clone": "^2.1.2",
     "depcheck": "^1.4.3",
     "eslint": "^7.24.0",
