@@ -21,6 +21,7 @@
     "through2": "^3.0.1"
   },
   "devDependencies": {
+    "@metamask/auto-changelog": "^4.0.0",
     "browserify": "^16.5.0",
     "clone": "^2.1.2",
     "depcheck": "^1.4.3",
@@ -30,6 +31,7 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.3.1",
     "pify": "^5.0.0",
+    "prettier": "^3.3.3",
     "tape": "^4.13.2"
   },
   "repository": {
