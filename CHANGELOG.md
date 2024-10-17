@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0]
+
+### Changed
+
+- Allow overriding default stream constructor options ([#10](https://github.com/MetaMask/bify-module-groups/pull/10))
+
 ## [2.0.0]
 
 ### Changed
@@ -19,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release
 
-[Unreleased]: https://github.com/MetaMask/bify-module-groups/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/MetaMask/bify-module-groups/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/MetaMask/bify-module-groups/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/MetaMask/bify-module-groups/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/MetaMask/bify-module-groups/releases/tag/v1.0.0
