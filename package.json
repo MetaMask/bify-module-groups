@@ -20,11 +20,14 @@
     "pump": "^3.0.0",
     "through2": "^3.0.1"
   },
+  "resolutions": {
+    "@vue/compiler-sfc": "3.2.33"
+  },
   "devDependencies": {
     "@metamask/auto-changelog": "^4.0.0",
     "browserify": "^17.0.1",
     "clone": "^2.1.2",
-    "depcheck": "^1.4.6",
+    "depcheck": "^1.4.7",
     "eslint": "^7.24.0",
     "eslint-config-standard": "^16.0.2",
     "eslint-plugin-import": "^2.22.1",
