@@ -13,18 +13,18 @@ jobs:
       startsWith(github.event.pull_request.head.ref, 'release/')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # We check out the release pull request's base branch, which will be
           # used as the base branch for all git operations.
           ref: ${{ github.event.pull_request.base.ref }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .nvmrc
-      - uses: MetaMask/action-publish-release@v3
+      - uses: MetaMask/action-publish-release@f01f1be110d60fb07d86c880ce3d6bdb353524d3 # v3.3.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: MetaMask/action-npm-publish@v5
+      - uses: MetaMask/action-npm-publish@7cd534ddf00d2a055c347f47fc831cc83795a73c # v5.3.1
         with:
           npm-token: ${{ secrets.NPM_TOKEN }}
         env:
